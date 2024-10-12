@@ -30,8 +30,12 @@ export const userBodySchema: FastifySchema = {
     properties: {
       user: {
         type: "object",
+        required: ["email", "firstName", "lastName"], // Adding required fields
         properties: {
           ...userBaseProps,
+          email: { type: "string", format: "email" }, // Ensure email is a valid email format
+          firstName: { type: "string" },
+          lastName: { type: "string" },
           password: { type: "string" },
         },
       },

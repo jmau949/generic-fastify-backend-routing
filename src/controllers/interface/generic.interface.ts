@@ -5,3 +5,11 @@ export interface IIdParams {
 export interface ISuccessfulReply {
   message: string;
 }
+
+export interface IErrorReply {
+  message: string;
+}
+
+export interface IEmailParams {
+  email: string;
+}

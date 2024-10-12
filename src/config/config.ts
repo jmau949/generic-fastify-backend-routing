@@ -4,8 +4,4 @@ export default {
   jwt: {
     secret: "super secret",
   },
-  cognito: {
-    userPoolId: "REPLACEME",
-    region: "REPLACEME",
-  },
 };

@@ -4,16 +4,17 @@ import axios from "axios";
 import * as jwt from "jsonwebtoken";
 const jwkToPem = require("jwk-to-pem");
 
-import config from "../config";
+import config from "../config/config";
 
+// Extend Fastify to add the custom `authentication` method
 declare module "fastify" {
   export interface FastifyInstance {
-    authenticate: Function;
+    authentication: (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
   }
 }
 
-const USER_POOL_ID = config.cognito.userPoolId;
-const REGION = config.cognito.region;
+const USER_POOL_ID = process.env.AWS_COGNITO_USER_POOL_ID;
+const REGION = process.env.AWS_REGION;
 const JWK_URL = `https://cognito-idp.${REGION}.amazonaws.com/${USER_POOL_ID}/.well-known/jwks.json`;
 
 let jwksCache: any = null; // To cache the JWKs

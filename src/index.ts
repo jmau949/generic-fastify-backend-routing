@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import fastify, { FastifyInstance } from "fastify";
-import config from "./config";
+import config from "./config/config";
 import { userController } from "./controllers/user-controllers";
 import auth from "./plugins/auth";
 
@@ -34,6 +34,7 @@ class Application {
     this.registerPlugins();
     this.registerControllors();
     await this.startHttpServer();
+    console.log("process.env.NODE_ENV", process.env.NODE_ENV);
   }
 }
 
