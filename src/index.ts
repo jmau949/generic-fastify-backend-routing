@@ -30,11 +30,12 @@ class Application {
     });
   }
   async main() {
+    console.log("NODE_ENV IS ", process.env.NODE_ENV);
+
     // await AppDataSource.initialize()
     this.registerPlugins();
     this.registerControllors();
     await this.startHttpServer();
-    console.log("process.env.NODE_ENV", process.env.NODE_ENV);
   }
 }
 
