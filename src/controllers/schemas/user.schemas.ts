@@ -43,6 +43,24 @@ export const userBodySchema: FastifySchema = {
   },
 };
 
+export const userEmailSchema: FastifySchema = {
+  body: {
+    type: "object",
+    required: ["user"],
+    properties: {
+      user: {
+        type: "object",
+        required: ["email", "password"], // Adding required fields
+        properties: {
+          ...userBaseProps,
+          email: { type: "string", format: "email" }, // Ensure email is a valid email format
+          password: { type: "string" },
+        },
+      },
+    },
+  },
+};
+
 export const tokenResponseSchema: FastifySchema = {
   response: {
     200: {

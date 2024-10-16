@@ -3,6 +3,8 @@ import fastify, { FastifyInstance } from "fastify";
 import config from "./config/config";
 import { userController } from "./controllers/user-controllers";
 import auth from "./plugins/auth";
+import corsConfig from "./config/corsConfig"; // Import CORS config
+import cors from "@fastify/cors";
 
 class Application {
   server: FastifyInstance;
@@ -14,6 +16,7 @@ class Application {
   }
   async startHttpServer() {
     try {
+      console.log("config.port", config.port);
       const address = await this.server.listen({ port: config.port });
       console.log(`Server listening at ${address}`);
     } catch (error) {
@@ -22,6 +25,8 @@ class Application {
     }
   }
   registerPlugins() {
+    const env = (process.env.NODE_ENV as keyof typeof corsConfig) || "dev";
+    this.server.register(cors, corsConfig[env]);
     this.server.register(auth);
   }
   registerControllors() {

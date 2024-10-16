@@ -12,6 +12,13 @@ export interface IUserBody {
     password: string;
   };
 }
+
+export interface IUserEmail {
+  user: {
+    email: string;
+    password: string;
+  };
+}
 export interface ITokenBody {
   token: string;
 }

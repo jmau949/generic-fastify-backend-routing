@@ -12,9 +12,9 @@ import {
 } from "@aws-sdk/client-cognito-identity-provider";
 import { User } from "../models/user";
 import { IIdParams, ISuccessfulReply, IErrorReply, IEmailParams } from "./interface/generic.interface";
-import { IUserBody, IUserReply, ITokenBody } from "./interface/user.interface";
+import { IUserBody, IUserReply, ITokenBody, IUserEmail } from "./interface/user.interface";
 import { emailParamsSchema, successfulResponseSchema } from "./schemas/generic.schemas";
-import { userResponseSchema, userBodySchema, tokenResponseSchema } from "./schemas/user.schemas";
+import { userResponseSchema, userBodySchema, tokenResponseSchema, userEmailSchema } from "./schemas/user.schemas";
 import cognitoClient from "../config/cognito";
 import constants from "../config/constants";
 import * as crypto from "crypto";
@@ -249,10 +249,10 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
   });
 
   server.post<{
-    Body: IUserBody;
+    Body: IUserEmail;
     Reply: ITokenBody;
-  }>("/login", { schema: { ...userBodySchema, ...tokenResponseSchema } }, async (request, reply) => {
-    const { email, password, firstName, lastName } = request.body.user;
+  }>("/login", { schema: { ...userEmailSchema, ...tokenResponseSchema } }, async (request, reply) => {
+    const { email, password } = request.body.user;
     try {
       // Send the authentication request to Cognito
       // Authenticate user with Cognito
