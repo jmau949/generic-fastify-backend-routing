@@ -60,21 +60,3 @@ export const userEmailSchema: FastifySchema = {
     },
   },
 };
-
-export const tokenResponseSchema: FastifySchema = {
-  response: {
-    200: {
-      type: "object",
-      required: ["token"],
-      properties: {
-        token: { type: "string" },
-        user: {
-          type: "object",
-          properties: {
-            ...userBaseProps,
-          },
-        },
-      },
-    },
-  },
-};

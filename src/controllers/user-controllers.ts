@@ -1,20 +1,19 @@
 import { FastifyPluginCallback, FastifyReply, FastifySchema } from "fastify";
 import {
-  CognitoIdentityProviderClient,
   AdminGetUserCommand,
   SignUpCommand,
   AdminDeleteUserCommand,
   AdminUpdateUserAttributesCommand,
-  AdminInitiateAuthCommand,
   AuthFlowType,
   InitiateAuthCommand, // can change this to AdminInitiateAuthCommand
   AdminCreateUserCommand, // can change to this one to create user because server, need set verified = false
+  GetUserCommand,
 } from "@aws-sdk/client-cognito-identity-provider";
 import { User } from "../models/user";
 import { IIdParams, ISuccessfulReply, IErrorReply, IEmailParams } from "./interface/generic.interface";
 import { IUserBody, IUserReply, ITokenBody, IUserEmail } from "./interface/user.interface";
 import { emailParamsSchema, successfulResponseSchema } from "./schemas/generic.schemas";
-import { userResponseSchema, userBodySchema, tokenResponseSchema, userEmailSchema } from "./schemas/user.schemas";
+import { userResponseSchema, userBodySchema, userEmailSchema } from "./schemas/user.schemas";
 import cognitoClient from "../config/cognito";
 import constants from "../config/constants";
 import * as crypto from "crypto";
@@ -50,6 +49,21 @@ const getUserById = async (userId: string) => {
   }
 };
 
+const verifyCognitoToken = async (token: string) => {
+  try {
+    const params = {
+      AccessToken: token,
+    };
+
+    const command = new GetUserCommand(params);
+    const response = await cognitoClient.send(command);
+
+    return response; // Returns user attributes from Cognito
+  } catch (error) {
+    console.error("Cognito Token Verification Failed:", error);
+    throw new Error("Invalid or expired token");
+  }
+};
 // Separate function to handle Cognito sign-up
 async function signUpUserWithCognito(email: string, firstName: string, lastName: string, password: string) {
   // Calculate the secret hash
@@ -250,19 +264,27 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
 
   server.post<{
     Body: IUserEmail;
-    Reply: ITokenBody;
-  }>("/login", { schema: { ...userEmailSchema, ...tokenResponseSchema } }, async (request, reply) => {
+    Reply: ISuccessfulReply;
+  }>("/login", { schema: { ...userEmailSchema, ...successfulResponseSchema } }, async (request, reply) => {
     const { email, password } = request.body.user;
     try {
-      // Send the authentication request to Cognito
       // Authenticate user with Cognito
       const authResult = await authenticateUserWithCognito(email, password);
 
-      // Create a JWT for the session using Fastify JWT
-      // Return the authentication tokens if login is successful
-      reply.code(200).send({
-        token: authResult.AccessToken || "",
+      const accessToken = authResult.AccessToken;
+      if (!accessToken) {
+        throw new Error("Missing authentication token from Cognito");
+      }
+
+      // **Set JWT token in HttpOnly, Secure cookie**
+      reply.setCookie("authToken", accessToken, {
+        httpOnly: true, // Prevents JavaScript access
+        secure: process.env.NODE_ENV === "production", // Use HTTPS in production
+        sameSite: "strict", // CSRF protection
+        path: "/",
       });
+
+      reply.code(200).send({ message: "Login successful" });
     } catch (error) {
       if (error.message.startsWith(constants.CLIENT_ERROR)) {
         handleError(
@@ -274,6 +296,22 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
         server.log.error("Error logging in: ", error);
         handleError(reply, "Internal Server Error", 500);
       }
+    }
+  });
+
+  server.get("/me", async (request, reply) => {
+    try {
+      const authToken = request.cookies.authToken;
+      console.log("authToken", authToken);
+      if (!authToken) {
+        return reply.code(401).send({ error: "Unauthorized - No Token" });
+      }
+
+      const user = await verifyCognitoToken(authToken); // Ensure this method correctly validates tokens
+      return reply.send({ user });
+    } catch (error) {
+      reply.clearCookie("authToken"); // Clears expired token
+      return reply.code(401).send({ error: "Session expired or invalid" });
     }
   });
 
@@ -332,5 +370,9 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
     }
   );
 
+  server.post("/logout", async (request, reply) => {
+    reply.clearCookie("authToken");
+    reply.code(200).send({ message: "Logged out successfully" });
+  });
   done();
 };
