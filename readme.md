@@ -62,9 +62,11 @@ Create a `.env` file in the root directory and define the required environment v
 ```sh
 PORT=3010
 AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=aws-access-key-id
+AWS_SECRET_ACCESS_KEY=aws-secret-access-key
 AWS_COGNITO_USER_POOL_ID=your-cognito-user-pool-id
 AWS_COGNITO_CLIENT_ID=your-cognito-app-client-id
-COOKIE_SECRET=your-secure-cookie-secret
+AWS_COGNITO_CLIENT_SECRET=your-secure-cookie-secret
 NODE_ENV=dev
 ```
 
