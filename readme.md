@@ -44,14 +44,15 @@ This Fastify backend handles:
 Clone the repository:
 
 ```sh
-git clone https://github.com/your-repo-name.git
-cd fastify-backend
+git clone https://github.com/jmau949/generic-fastify-backend-routing.git
+cd generic-fastify-backend-routing
 ```
 
 Install dependencies:
 
 ```sh
 npm install
+npm run dev
 ```
 
 ## **Environment Variables**
@@ -64,7 +65,7 @@ AWS_REGION=us-east-1
 AWS_COGNITO_USER_POOL_ID=your-cognito-user-pool-id
 AWS_COGNITO_CLIENT_ID=your-cognito-app-client-id
 COOKIE_SECRET=your-secure-cookie-secret
-NODE_ENV=development
+NODE_ENV=dev
 ```
 
 Explanation of Variables:
