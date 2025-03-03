@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "main": "src/index.ts",
   "scripts": {
-    "dev": "cross-env NODE_ENV=dev nodemon --exec ts-node ./src/index.ts",
+    "dev": "cross-env NODE_ENV=dev nodemon --exec ts-node ./src/server.ts",
     "build": "tsc",
-    "start": "node ./dist/index",
+    "start": "node ./dist/server",
     "test": "echo \"Error: no test specified\" && exit 0"
   },
   "author": "",
