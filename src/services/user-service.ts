@@ -2,9 +2,11 @@ import {
   SignUpCommand,
   AdminUpdateUserAttributesCommand,
   AdminDeleteUserCommand,
+  ConfirmSignUpCommand,
 } from "@aws-sdk/client-cognito-identity-provider";
 import cognitoClient from "../config/cognito";
 import { calculateSecretHash } from "../utils/crypto-utils";
+import { authService } from "./auth-service";
 
 export const userService = {
   async createUser({
@@ -62,6 +64,18 @@ export const userService = {
     };
 
     const command = new AdminDeleteUserCommand(params);
+    await cognitoClient.send(command);
+  },
+
+  async verifyUser({ email, confirmationCode }: { email: string; confirmationCode: string }) {
+    const secretHash = await authService.getSecretHash(email);
+    const params = {
+      Username: email,
+      ConfirmationCode: confirmationCode,
+      ClientId: process.env.AWS_COGNITO_CLIENT_ID,
+      SecretHash: secretHash,
+    };
+    const command = new ConfirmSignUpCommand(params);
     await cognitoClient.send(command);
   },
 };

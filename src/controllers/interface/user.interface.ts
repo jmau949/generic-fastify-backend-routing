@@ -19,6 +19,13 @@ export interface IUserEmail {
     password: string;
   };
 }
+
+export interface IUserVerify {
+  user: {
+    email: string;
+    confirmationCode: string;
+  };
+}
 export interface ITokenBody {
   token: string;
 }

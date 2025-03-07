@@ -32,4 +32,7 @@ export const authService = {
 
     return response;
   },
+  async getSecretHash(email: string) {
+    return calculateSecretHash(CLIENT_ID, CLIENT_SECRET, email);
+  },
 };

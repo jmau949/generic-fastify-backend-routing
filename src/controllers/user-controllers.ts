@@ -1,6 +1,12 @@
 import { FastifyPluginCallback, FastifyReply } from "fastify";
-import { IUserBody, IUserEmail } from "./interface/user.interface";
-import { userResponseSchema, userBodySchema, userEmailSchema } from "./schemas/user.schemas";
+import { IUserBody, IUserEmail, IUserVerify } from "./interface/user.interface";
+import {
+  userResponseSchema,
+  userBodySchema,
+  userEmailSchema,
+  userVerifyRequestSchema,
+  userVerifyResponseSchema,
+} from "./schemas/user.schemas";
 import { successfulResponseSchema } from "./schemas/generic.schemas";
 import { userService } from "../services/user-service";
 import { authService } from "../services/auth-service";
@@ -28,6 +34,28 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
         return reply.code(200).send({ user });
       } catch (error) {
         return reply.code(400).send({ error: error.message });
+      }
+    }
+  );
+
+  // // User verify
+  server.post<{ Body: IUserVerify }>(
+    "/verify",
+    {
+      schema: {
+        body: userVerifyRequestSchema.body,
+        response: userVerifyResponseSchema.response,
+      },
+    },
+    async (request, reply) => {
+      try {
+        await userService.verifyUser({
+          email: request.body.user.email,
+          confirmationCode: request.body.user.confirmationCode,
+        });
+        return reply.code(200).send({});
+      } catch (error) {
+        return reply.code(400).send({ error: error.message || "Verification failed" });
       }
     }
   );

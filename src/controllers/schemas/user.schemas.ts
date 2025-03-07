@@ -60,3 +60,48 @@ export const userEmailSchema: FastifySchema = {
     },
   },
 };
+
+export const userVerifyRequestSchema: FastifySchema = {
+  body: {
+    type: "object",
+    required: ["user"],
+    properties: {
+      user: {
+        type: "object",
+        required: ["email", "confirmationCode"],
+        properties: {
+          email: {
+            type: "string",
+            format: "email",
+          },
+          confirmationCode: {
+            type: "string",
+          },
+        },
+      },
+    },
+  },
+};
+
+export const userVerifyResponseSchema: FastifySchema = {
+  response: {
+    200: {
+      type: "object",
+      properties: {},
+    },
+    400: {
+      type: "object",
+      properties: {
+        error: { type: "string" },
+      },
+      required: ["error"],
+    },
+    404: {
+      type: "object",
+      properties: {
+        error: { type: "string" },
+      },
+      required: ["error"],
+    },
+  },
+};
