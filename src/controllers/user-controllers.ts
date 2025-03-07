@@ -110,8 +110,31 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
         });
         return reply.code(200).send({});
       } catch (error) {
-        console.log("error", error);
-        return reply.code(401).send({ error: "Authentication failed" });
+        console.error("error", error);
+
+        if (error?.__type === "UserNotConfirmedException") {
+          return reply.code(403).send({
+            error: "User not confirmed. Please check your email for a verification link.",
+          });
+        } else if (error?.__type === "NotAuthorizedException") {
+          console.log("SHOUD BE HEREEEEE");
+          return reply.code(400).send({
+            error: "Incorrect username or password. Please verify your credentials.",
+          });
+        } else if (error?.__type === "UserNotFoundException") {
+          return reply.code(404).send({
+            error: "User not found. Please register or check your email address.",
+          });
+        } else if (error?.__type === "PasswordResetRequiredException") {
+          return reply.code(403).send({
+            error: "Password reset required. Please reset your password before logging in.",
+          });
+        }
+
+        // For all other errors, return a generic message with details if available.
+        return reply.code(401).send({
+          error: error.message || "Authentication failed",
+        });
       }
     }
   );
