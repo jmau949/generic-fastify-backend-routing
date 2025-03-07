@@ -1,5 +1,6 @@
 import fastify, { FastifySchema } from "fastify";
 import { NAME_MAX_LENGTH, NAME_MIN_LENGTH, PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "../../config/constants";
+import { maxLength } from "class-validator";
 
 export const userGetMeRequestSchema: FastifySchema = {
   headers: {
@@ -19,11 +20,12 @@ export const userGetMeResponseSchema: FastifySchema = {
         user: {
           type: "object",
           properties: {
-            email: { type: "string", format: "email" },
-            firstName: { type: "string" },
-            lastName: { type: "string" },
+            email: { type: "string", format: "email", nullable: true },
+            firstName: { type: "string", nullable: true },
+            lastName: { type: "string", nullable: true },
+            userId: { type: "string", nullable: true },
           },
-          required: ["email", "firstName", "lastName"],
+          required: ["userId"], // Ensure at least `userId` is present
         },
       },
       required: ["user"],
@@ -218,6 +220,39 @@ export const userForgotPasswordResponseSchema = {
     200: {
       type: "object",
       properties: {},
+    },
+    400: {
+      type: "object",
+      properties: {
+        error: { type: "string" },
+      },
+    },
+  },
+};
+
+export const userConfirmForgotPasswordRequestSchema = {
+  body: {
+    type: "object",
+    properties: {
+      user: {
+        type: "object",
+        properties: {
+          email: { type: "string", format: "email" },
+          code: { type: "string", minLength: 6 }, // Verification code from Cognito
+          password: { type: "string", minLength: PASSWORD_MIN_LENGTH, maxLength: PASSWORD_MAX_LENGTH }, // New password
+        },
+        required: ["email", "code", "password"],
+      },
+    },
+    required: ["user"],
+  },
+};
+
+export const userConfirmForgotPasswordResponseSchema = {
+  response: {
+    200: {
+      type: "object",
+      properties: {}, // Empty object on success
     },
     400: {
       type: "object",

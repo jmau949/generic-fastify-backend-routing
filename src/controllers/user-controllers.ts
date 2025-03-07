@@ -1,5 +1,11 @@
 import { FastifyPluginCallback, FastifyReply } from "fastify";
-import { IUserBody, IUserEmail, IUserForgotPassword, IUserVerify } from "./interface/user.interface";
+import {
+  IUserBody,
+  IUserConfirmForgotPassword,
+  IUserEmail,
+  IUserForgotPassword,
+  IUserVerify,
+} from "./interface/user.interface";
 import {
   userGetMeRequestSchema,
   userGetMeResponseSchema,
@@ -13,6 +19,8 @@ import {
   userUpdateResponseSchema,
   userForgotPasswordRequestSchema,
   userForgotPasswordResponseSchema,
+  userConfirmForgotPasswordRequestSchema,
+  userConfirmForgotPasswordResponseSchema,
 } from "./schemas/user.schemas";
 
 import { userService } from "../services/user-service";
@@ -35,6 +43,7 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
         return reply.send({ user });
       } catch (error) {
         reply.clearCookie("authToken");
+        console.log("ERROR", error);
         return reply.code(401).send({ error: "Session expired or invalid" });
       }
     }
@@ -54,6 +63,7 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
         const user = await userService.createUser(request.body.user);
         return reply.code(200).send({ user });
       } catch (error) {
+        console.log("error", error);
         return reply.code(400).send({ error: error.message });
       }
     }
@@ -76,6 +86,7 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
         });
         return reply.code(200).send({});
       } catch (error) {
+        console.log("error", error);
         return reply.code(400).send({ error: error.message || "Verification failed" });
       }
     }
@@ -101,6 +112,7 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
         });
         return reply.code(200).send({});
       } catch (error) {
+        console.log("error", error);
         return reply.code(401).send({ error: "Authentication failed" });
       }
     }
@@ -121,6 +133,7 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
         await userService.updateUserAttributes(request.body.user);
         return reply.code(200).send({});
       } catch (error) {
+        console.log("error", error);
         return reply.code(400).send({ error: error.message });
       }
     }
@@ -145,6 +158,28 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
         await userService.forgotPassword(request.body.user.email);
         return reply.code(200).send({});
       } catch (error) {
+        console.log("error", error);
+        return reply.code(400).send({ error: error.message });
+      }
+    }
+  );
+
+  server.post<{ Body: IUserConfirmForgotPassword }>(
+    "/confirm-forgot-password",
+    {
+      schema: {
+        body: userConfirmForgotPasswordRequestSchema.body,
+        response: userConfirmForgotPasswordResponseSchema.response,
+      },
+    },
+    async (request, reply) => {
+      try {
+        console.log("request.body", request.body);
+        const { email, code, password } = request.body.user;
+        await userService.confirmForgotPassword(email, code, password);
+        return reply.code(200).send({});
+      } catch (error) {
+        console.log("error", error);
         return reply.code(400).send({ error: error.message });
       }
     }

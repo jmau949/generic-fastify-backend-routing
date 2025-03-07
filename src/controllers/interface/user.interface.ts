@@ -36,3 +36,11 @@ export interface IUserForgotPassword {
     email: string;
   };
 }
+
+export interface IUserConfirmForgotPassword {
+  user: {
+    email: string;
+    code: string;
+    password: string;
+  };
+}

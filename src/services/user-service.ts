@@ -7,6 +7,8 @@ import {
   AuthFlowType,
   InitiateAuthCommand,
   AdminResetUserPasswordCommand,
+  ConfirmForgotPasswordCommand,
+  GetUserCommandOutput,
 } from "@aws-sdk/client-cognito-identity-provider";
 import cognitoClient from "../config/cognito";
 import { calculateSecretHash } from "../utils/crypto-utils";
@@ -65,8 +67,35 @@ export const userService = {
   // web verify
   async verifyUser(token: string) {
     if (!token) throw new Error("Unauthorized - No Token");
-    const command = new GetUserCommand({ AccessToken: token });
-    return await cognitoClient.send(command);
+
+    const response: GetUserCommandOutput = await cognitoClient.send(new GetUserCommand({ AccessToken: token }));
+
+    // Use a direct loop instead of Object.fromEntries to avoid extra object creation
+    let email: string | null = null;
+    let firstName: string | null = null;
+    let lastName: string | null = null;
+    let userId: string | null = null;
+
+    if (response.UserAttributes) {
+      for (const attr of response.UserAttributes) {
+        switch (attr.Name) {
+          case "email":
+            email = attr.Value || null;
+            break;
+          case "given_name":
+            firstName = attr.Value || null;
+            break;
+          case "family_name":
+            lastName = attr.Value || null;
+            break;
+          case "sub":
+            userId = attr.Value || null;
+            break;
+        }
+      }
+    }
+
+    return { email, firstName, lastName, userId };
   },
 
   async updateUserAttributes({ email, firstName, lastName }: UserDetails) {
@@ -89,10 +118,13 @@ export const userService = {
     await cognitoClient.send(command);
   },
 
-  async deleteUser(email: string) {
-    const command = new AdminDeleteUserCommand({
-      UserPoolId: USER_POOL_ID,
+  async confirmForgotPassword(email: string, code: string, password: string) {
+    const command = new ConfirmForgotPasswordCommand({
+      ClientId: CLIENT_ID,
       Username: email,
+      ConfirmationCode: code,
+      Password: password,
+      SecretHash: generateSecretHash(email),
     });
     await cognitoClient.send(command);
   },
