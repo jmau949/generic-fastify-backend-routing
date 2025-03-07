@@ -24,7 +24,7 @@ import {
 
 import { userService } from "../services/user-service";
 
-import { AUTH_COOKIE_NAME } from "../config/constants";
+import { AUTH_TOKEN } from "../config/constants";
 
 export const userController: FastifyPluginCallback = (server, options, done) => {
   // **Get authenticated user**
@@ -102,7 +102,7 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
     async (request, reply) => {
       try {
         const accessToken = await userService.login(request.body.user);
-        reply.setCookie(AUTH_COOKIE_NAME, accessToken, {
+        reply.setCookie(AUTH_TOKEN, accessToken, {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
           sameSite: "strict",

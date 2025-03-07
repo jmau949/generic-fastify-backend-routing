@@ -6,4 +6,4 @@ export const NAME_MAX_LENGTH = 50;
 
 export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export const AUTH_COOKIE_NAME = "authToken";
+export const AUTH_TOKEN = "authToken";
