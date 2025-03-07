@@ -1,33 +1,54 @@
 import { FastifyPluginCallback, FastifyReply } from "fastify";
-import { IUserBody, IUserEmail, IUserVerify } from "./interface/user.interface";
+import { IUserBody, IUserEmail, IUserForgotPassword, IUserVerify } from "./interface/user.interface";
 import {
-  userResponseSchema,
-  userBodySchema,
-  userEmailSchema,
+  userGetMeRequestSchema,
+  userGetMeResponseSchema,
+  userSignUpRequestSchema,
+  userSignUpResponseBodySchema,
   userVerifyRequestSchema,
   userVerifyResponseSchema,
+  userLoginRequestSchema,
+  userLoginResponseSchema,
+  userUpdateRequestSchema,
+  userUpdateResponseSchema,
+  userForgotPasswordRequestSchema,
+  userForgotPasswordResponseSchema,
 } from "./schemas/user.schemas";
-import { successfulResponseSchema } from "./schemas/generic.schemas";
+
 import { userService } from "../services/user-service";
-import { authService } from "../services/auth-service";
-import constants from "../config/constants";
+
+import { AUTH_COOKIE_NAME } from "../config/constants";
 
 export const userController: FastifyPluginCallback = (server, options, done) => {
   // **Get authenticated user**
-  server.get("/me", async (request, reply) => {
-    try {
-      const user = await authService.verifyUser(request.cookies.authToken);
-      return reply.send({ user });
-    } catch (error) {
-      reply.clearCookie("authToken");
-      return reply.code(401).send({ error: "Session expired or invalid" });
+  server.get(
+    "/me",
+    {
+      schema: {
+        body: userGetMeRequestSchema.body,
+        response: userGetMeResponseSchema.response,
+      },
+    },
+    async (request, reply) => {
+      try {
+        const user = await userService.verifyUser(request.cookies.authToken);
+        return reply.send({ user });
+      } catch (error) {
+        reply.clearCookie("authToken");
+        return reply.code(401).send({ error: "Session expired or invalid" });
+      }
     }
-  });
+  );
 
   // **User signup**
   server.post<{ Body: IUserBody }>(
     "/",
-    { schema: { ...userBodySchema, ...userResponseSchema } },
+    {
+      schema: {
+        body: userSignUpRequestSchema.body,
+        response: userSignUpResponseBodySchema.response,
+      },
+    },
     async (request, reply) => {
       try {
         const user = await userService.createUser(request.body.user);
@@ -40,7 +61,7 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
 
   // // User verify
   server.post<{ Body: IUserVerify }>(
-    "/verify",
+    "/confirm",
     {
       schema: {
         body: userVerifyRequestSchema.body,
@@ -49,7 +70,7 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
     },
     async (request, reply) => {
       try {
-        await userService.verifyUser({
+        await userService.confirmUser({
           email: request.body.user.email,
           confirmationCode: request.body.user.confirmationCode,
         });
@@ -63,17 +84,22 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
   // **User login**
   server.post<{ Body: IUserEmail }>(
     "/login",
-    { schema: { ...userEmailSchema, ...successfulResponseSchema } },
+    {
+      schema: {
+        body: userLoginRequestSchema.body,
+        response: userLoginResponseSchema.response,
+      },
+    },
     async (request, reply) => {
       try {
-        const accessToken = await authService.login(request.body.user);
-        reply.setCookie("authToken", accessToken, {
+        const accessToken = await userService.login(request.body.user);
+        reply.setCookie(AUTH_COOKIE_NAME, accessToken, {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
           sameSite: "strict",
           path: "/",
         });
-        return reply.code(200).send({ message: "Login successful" });
+        return reply.code(200).send({});
       } catch (error) {
         return reply.code(401).send({ error: "Authentication failed" });
       }
@@ -83,25 +109,17 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
   // **User update**
   server.put<{ Body: IUserBody }>(
     "/",
-    { schema: { ...userBodySchema, ...successfulResponseSchema }, preHandler: server.authentication },
+    {
+      schema: {
+        body: userUpdateRequestSchema.body,
+        response: userUpdateResponseSchema.response,
+      },
+      preHandler: server.authentication,
+    },
     async (request, reply) => {
       try {
         await userService.updateUserAttributes(request.body.user);
-        return reply.code(200).send({ message: "User update successful" });
-      } catch (error) {
-        return reply.code(400).send({ error: error.message });
-      }
-    }
-  );
-
-  // **User delete**
-  server.delete<{ Params: { email: string } }>(
-    "/:email",
-    { preHandler: server.authentication },
-    async (request, reply) => {
-      try {
-        await userService.deleteUser(request.params.email);
-        return reply.code(200).send({ message: "User deletion successful" });
+        return reply.code(200).send({});
       } catch (error) {
         return reply.code(400).send({ error: error.message });
       }
@@ -113,6 +131,24 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
     reply.clearCookie("authToken");
     return reply.code(200).send({ message: "Logged out successfully" });
   });
+
+  server.post<{ Body: IUserForgotPassword }>(
+    "/forgot-password",
+    {
+      schema: {
+        body: userForgotPasswordRequestSchema.body,
+        response: userForgotPasswordResponseSchema.response,
+      },
+    },
+    async (request, reply) => {
+      try {
+        await userService.forgotPassword(request.body.user.email);
+        return reply.code(200).send({});
+      } catch (error) {
+        return reply.code(400).send({ error: error.message });
+      }
+    }
+  );
 
   done();
 };

@@ -29,3 +29,10 @@ export interface IUserVerify {
 export interface ITokenBody {
   token: string;
 }
+
+
+export interface IUserForgotPassword {
+  user: {
+    email: string;
+  };
+}
