@@ -44,3 +44,8 @@ export interface IUserConfirmForgotPassword {
     password: string;
   };
 }
+export interface IUserResendConfirmationCode {
+  user: {
+    email: string;
+  };
+}

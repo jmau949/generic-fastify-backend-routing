@@ -4,6 +4,7 @@ import {
   IUserConfirmForgotPassword,
   IUserEmail,
   IUserForgotPassword,
+  IUserResendConfirmationCode,
   IUserVerify,
 } from "./interface/user.interface";
 import {
@@ -20,6 +21,8 @@ import {
   userForgotPasswordResponseSchema,
   userConfirmForgotPasswordRequestSchema,
   userConfirmForgotPasswordResponseSchema,
+  userResendConfirmationCodeRequestSchema,
+  userResendConfirmationCodeResponseSchema,
 } from "./schemas/user.schemas";
 
 import { userService } from "../services/user-service";
@@ -117,7 +120,6 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
             error: "User not confirmed. Please check your email for a verification link.",
           });
         } else if (error?.__type === "NotAuthorizedException") {
-          console.log("SHOUD BE HEREEEEE");
           return reply.code(400).send({
             error: "Incorrect username or password. Please verify your credentials.",
           });
@@ -198,6 +200,26 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
         console.log("request.body", request.body);
         const { email, code, password } = request.body.user;
         await userService.confirmForgotPassword(email, code, password);
+        return reply.code(200).send({});
+      } catch (error) {
+        console.log("error", error);
+        return reply.code(400).send({ error: error.message });
+      }
+    }
+  );
+
+  server.post<{ Body: IUserResendConfirmationCode }>(
+    "/resend-confirmation-code",
+    {
+      schema: {
+        body: userResendConfirmationCodeRequestSchema.body,
+        response: userResendConfirmationCodeResponseSchema.response,
+      },
+    },
+    async (request, reply) => {
+      try {
+        const { email } = request.body.user;
+        await userService.resendConfirmationCode(email);
         return reply.code(200).send({});
       } catch (error) {
         console.log("error", error);

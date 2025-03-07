@@ -7,8 +7,10 @@ import {
   AuthFlowType,
   InitiateAuthCommand,
   AdminResetUserPasswordCommand,
+  ForgotPasswordCommand,
   ConfirmForgotPasswordCommand,
   GetUserCommandOutput,
+  ResendConfirmationCodeCommand,
 } from "@aws-sdk/client-cognito-identity-provider";
 import cognitoClient from "../config/cognito";
 import { calculateSecretHash } from "../utils/crypto-utils";
@@ -111,8 +113,9 @@ export const userService = {
   },
 
   async forgotPassword(email: string) {
-    const command = new AdminResetUserPasswordCommand({
-      UserPoolId: USER_POOL_ID,
+    const command = new ForgotPasswordCommand({
+      ClientId: CLIENT_ID,
+      SecretHash: generateSecretHash(email),
       Username: email,
     });
     await cognitoClient.send(command);
@@ -124,6 +127,15 @@ export const userService = {
       Username: email,
       ConfirmationCode: code,
       Password: password,
+      SecretHash: generateSecretHash(email),
+    });
+    await cognitoClient.send(command);
+  },
+
+  async resendConfirmationCode(email: string) {
+    const command = new ResendConfirmationCodeCommand({
+      ClientId: CLIENT_ID,
+      Username: email,
       SecretHash: generateSecretHash(email),
     });
     await cognitoClient.send(command);

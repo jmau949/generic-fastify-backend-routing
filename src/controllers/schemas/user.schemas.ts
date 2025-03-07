@@ -252,3 +252,34 @@ export const userConfirmForgotPasswordResponseSchema = {
     },
   },
 };
+
+export const userResendConfirmationCodeRequestSchema = {
+  body: {
+    type: "object",
+    properties: {
+      user: {
+        type: "object",
+        properties: {
+          email: { type: "string", format: "email" },
+        },
+        required: ["email"],
+      },
+    },
+    required: ["user"],
+  },
+};
+
+export const userResendConfirmationCodeResponseSchema = {
+  response: {
+    200: {
+      type: "object",
+      properties: {}, // Empty object on success
+    },
+    400: {
+      type: "object",
+      properties: {
+        error: { type: "string" },
+      },
+    },
+  },
+};
