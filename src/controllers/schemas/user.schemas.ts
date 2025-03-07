@@ -2,16 +2,6 @@ import fastify, { FastifySchema } from "fastify";
 import { NAME_MAX_LENGTH, NAME_MIN_LENGTH, PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "../../config/constants";
 import { maxLength } from "class-validator";
 
-export const userGetMeRequestSchema: FastifySchema = {
-  headers: {
-    type: "object",
-    properties: {
-      cookie: { type: "string" }, // Ensures cookies are present
-    },
-    required: [],
-  },
-};
-
 export const userGetMeResponseSchema: FastifySchema = {
   response: {
     200: {

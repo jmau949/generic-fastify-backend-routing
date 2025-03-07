@@ -7,7 +7,6 @@ import {
   IUserVerify,
 } from "./interface/user.interface";
 import {
-  userGetMeRequestSchema,
   userGetMeResponseSchema,
   userSignUpRequestSchema,
   userSignUpResponseBodySchema,
@@ -33,7 +32,6 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
     "/me",
     {
       schema: {
-        body: userGetMeRequestSchema.body,
         response: userGetMeResponseSchema.response,
       },
     },
