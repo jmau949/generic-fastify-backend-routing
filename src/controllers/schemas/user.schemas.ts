@@ -24,6 +24,7 @@ export const userGetMeResponseSchema: FastifySchema = {
       type: "object",
       properties: {
         error: { type: "string" },
+        errorCode: { type: "string" },
       },
       required: ["error"],
     },
@@ -69,6 +70,7 @@ export const userSignUpResponseBodySchema: FastifySchema = {
       type: "object",
       properties: {
         error: { type: "string" },
+        errorCode: { type: "string" },
       },
       required: ["error"],
     },
@@ -107,6 +109,7 @@ export const userVerifyResponseSchema: FastifySchema = {
       type: "object",
       properties: {
         error: { type: "string" },
+        errorCode: { type: "string" },
       },
       required: ["error"],
     },
@@ -114,6 +117,7 @@ export const userVerifyResponseSchema: FastifySchema = {
       type: "object",
       properties: {
         error: { type: "string" },
+        errorCode: { type: "string" },
       },
       required: ["error"],
     },
@@ -147,6 +151,7 @@ export const userLoginResponseSchema: FastifySchema = {
       type: "object",
       properties: {
         error: { type: "string" },
+        errorCode: { type: "string" },
       },
       required: ["error"],
     },
@@ -183,6 +188,7 @@ export const userUpdateResponseSchema: FastifySchema = {
       type: "object",
       properties: {
         error: { type: "string" },
+        errorCode: { type: "string" },
       },
       required: ["error"],
     },
@@ -215,6 +221,7 @@ export const userForgotPasswordResponseSchema = {
       type: "object",
       properties: {
         error: { type: "string" },
+        errorCode: { type: "string" },
       },
     },
   },
@@ -248,6 +255,7 @@ export const userConfirmForgotPasswordResponseSchema = {
       type: "object",
       properties: {
         error: { type: "string" },
+        errorCode: { type: "string" },
       },
     },
   },
@@ -279,6 +287,7 @@ export const userResendConfirmationCodeResponseSchema = {
       type: "object",
       properties: {
         error: { type: "string" },
+        errorCode: { type: "string" },
       },
     },
   },

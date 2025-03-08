@@ -65,7 +65,7 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
         return reply.code(200).send({ user });
       } catch (error) {
         console.log("error", error);
-        return reply.code(400).send({ error: error.message });
+        return reply.code(400).send({ error: error.message, errorCode: error.name });
       }
     }
   );
@@ -88,7 +88,7 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
         return reply.code(200).send({});
       } catch (error) {
         console.log("error", error);
-        return reply.code(400).send({ error: error.message || "Verification failed" });
+        return reply.code(400).send({ error: error.message, errorCode: error.name });
       }
     }
   );
@@ -118,24 +118,29 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
         if (error?.__type === "UserNotConfirmedException") {
           return reply.code(403).send({
             error: "User not confirmed. Please check your email for a verification link.",
+            errorCode: error.name,
           });
         } else if (error?.__type === "NotAuthorizedException") {
           return reply.code(400).send({
             error: "Incorrect username or password. Please verify your credentials.",
+            errorCode: error.name,
           });
         } else if (error?.__type === "UserNotFoundException") {
           return reply.code(404).send({
             error: "User not found. Please register or check your email address.",
+            errorCode: error.name,
           });
         } else if (error?.__type === "PasswordResetRequiredException") {
           return reply.code(403).send({
             error: "Password reset required. Please reset your password before logging in.",
+            errorCode: error.name,
           });
         }
 
         // For all other errors, return a generic message with details if available.
         return reply.code(401).send({
-          error: error.message || "Authentication failed",
+          error: "Authentication failed",
+          errorCode: null,
         });
       }
     }
@@ -157,7 +162,7 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
         return reply.code(200).send({});
       } catch (error) {
         console.log("error", error);
-        return reply.code(400).send({ error: error.message });
+        return reply.code(400).send({ error: error.message, errorCode: error.name });
       }
     }
   );
@@ -182,7 +187,7 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
         return reply.code(200).send({});
       } catch (error) {
         console.log("error", error);
-        return reply.code(400).send({ error: error.message });
+        return reply.code(400).send({ error: error.message, errorCode: error.name });
       }
     }
   );
@@ -203,7 +208,8 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
         return reply.code(200).send({});
       } catch (error) {
         console.log("error", error);
-        return reply.code(400).send({ error: error.message });
+        console.log("error.name", error.name);
+        return reply.code(400).send({ error: error.message, errorCode: error.name });
       }
     }
   );
@@ -223,7 +229,7 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
         return reply.code(200).send({});
       } catch (error) {
         console.log("error", error);
-        return reply.code(400).send({ error: error.message });
+        return reply.code(400).send({ error: error.message, errorCode: error.name });
       }
     }
   );
