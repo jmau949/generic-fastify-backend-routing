@@ -9,7 +9,7 @@ Parameters:
     AllowedValues:
       - dev
       - staging
-      - prod
+      - production
     Description: Environment type
   
   CognitoUserPoolId:  # Parameter for Cognito User Pool ID (used for authentication)

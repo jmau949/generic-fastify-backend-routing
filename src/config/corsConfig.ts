@@ -12,3 +12,5 @@ const corsConfig = {
     allowedHeaders: ["Content-Type", "Authorization"],
   },
 };
+
+export default corsConfig;
