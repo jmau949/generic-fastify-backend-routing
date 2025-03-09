@@ -107,6 +107,15 @@ After starting, the server will listen at:
 http://localhost:3010
 ```
 
+### Deployment Production
+
+```sh
+npm run build:lambda
+npm run sam:build
+npm run sam:deploy
+```
+
+
 ## **Authentication Flow**
 
 This backend follows a cookie-based JWT authentication mechanism.
@@ -130,9 +139,6 @@ This backend follows a cookie-based JWT authentication mechanism.
 - Tokens expire based on Cognito's session timeout.
 - On every request, Fastify middleware verifies the JWT validity.
 
-## **API Routes**
-
-### User Routes
 
 #### Register a New User
 
@@ -239,13 +245,9 @@ Errors follow this structured format:
 ```json
 {
   "error": "Unauthorized",
-  "message": "Invalid credentials"
+  "errorCode": "CognitoException"
 }
 ```
-
-- **401 Unauthorized** → Invalid or missing token.
-- **403 Forbidden** → User lacks permission.
-- **500 Internal Server Error** → Unexpected issues.
 
 ## **Security Features**
 
