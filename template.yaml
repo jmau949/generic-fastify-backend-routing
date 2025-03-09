@@ -9,6 +9,11 @@ Globals:
     Environment:
       Variables:
         NODE_ENV: !Ref Environment
+        PORT: 3010
+        AWS_REGION: us-west-2
+        AWS_COGNITO_USER_POOL_ID: !Ref CognitoUserPoolId
+        AWS_COGNITO_CLIENT_ID: !Ref CognitoClientId
+        AWS_COGNITO_CLIENT_SECRET: !Ref CognitoClientSecret
 
 Parameters:
   Environment:
@@ -19,6 +24,21 @@ Parameters:
       - staging
       - prod
     Description: Environment type
+  
+  CognitoUserPoolId:
+    Type: String
+    Default: ''
+    Description: Cognito User Pool ID
+  
+  CognitoClientId:
+    Type: String
+    Default: ''
+    Description: Cognito Client ID
+  
+  CognitoClientSecret:
+    Type: String
+    Default: ''
+    Description: Cognito Client Secret
 
 Resources:
   FastifyApiFunction:

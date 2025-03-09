@@ -73,11 +73,15 @@ NODE_ENV=dev
 Explanation of Variables:
 
 - **PORT** → Defines the port the Fastify server runs on.
+- **AWS_ACCESS_KEY_ID**
+- **AWS_SECRET_ACCESS_KEY**
 - **AWS_REGION** → AWS region where Cognito is hosted.
 - **AWS_COGNITO_USER_POOL_ID** → ID of the Cognito user pool.
 - **AWS_COGNITO_CLIENT_ID** → Cognito application client ID.
 - **COOKIE_SECRET** → Secret for signing cookies.
 - **NODE_ENV** → Set to production for live environments.
+
+For running in Sam local, need env.json file that looks like env.example.json
 
 ## **Running the Server**
 
@@ -85,6 +89,10 @@ To start the Fastify server in development mode:
 
 ```sh
 npm run dev
+```
+
+```sh
+npm run sam:local
 ```
 
 For production:

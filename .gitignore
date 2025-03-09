@@ -78,6 +78,8 @@ web_modules/
 .env.test.local
 .env.production.local
 .env.local
+env.json
+.env*
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
@@ -130,8 +132,6 @@ dist
 .pnp.*
 
 
-.env*
-
 # Build
 dist
 build
@@ -142,10 +142,6 @@ build
 .aws-sam
 samconfig.toml
 
-# Environment variables
-.env
-.env.local
-.env.*.local
 
 # Editor files
 .idea
