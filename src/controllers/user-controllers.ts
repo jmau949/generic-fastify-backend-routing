@@ -146,26 +146,26 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
     }
   );
 
-  // **User update**
-  server.put<{ Body: IUserBody }>(
-    "/",
-    {
-      schema: {
-        body: userUpdateRequestSchema.body,
-        response: userUpdateResponseSchema.response,
-      },
-      preHandler: server.authentication,
-    },
-    async (request, reply) => {
-      try {
-        await userService.updateUserAttributes(request.body.user);
-        return reply.code(200).send({});
-      } catch (error) {
-        console.log("error", error);
-        return reply.code(400).send({ error: error.message, errorCode: error.name });
-      }
-    }
-  );
+  // // **User update**
+  // server.put<{ Body: IUserBody }>(
+  //   "/",
+  //   {
+  //     schema: {
+  //       body: userUpdateRequestSchema.body,
+  //       response: userUpdateResponseSchema.response,
+  //     },
+  //     preHandler: server.authentication,
+  //   },
+  //   async (request, reply) => {
+  //     try {
+  //       await userService.updateUserAttributes(request.body.user);
+  //       return reply.code(200).send({});
+  //     } catch (error) {
+  //       console.log("error", error);
+  //       return reply.code(400).send({ error: error.message, errorCode: error.name });
+  //     }
+  //   }
+  // );
 
   // **User logout**
   server.post("/logout", async (request, reply) => {

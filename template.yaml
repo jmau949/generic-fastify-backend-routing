@@ -1,22 +1,9 @@
-AWSTemplateFormatVersion: '2010-09-09'
-Transform: AWS::Serverless-2016-10-31
-Description: Fastify API with AWS SAM
-
-Globals:
-  Function:
-    Timeout: 30
-    MemorySize: 128
-    Environment:
-      Variables:
-        NODE_ENV: !Ref Environment
-        PORT: 3010
-        AWS_REGION: us-west-2
-        AWS_COGNITO_USER_POOL_ID: !Ref CognitoUserPoolId
-        AWS_COGNITO_CLIENT_ID: !Ref CognitoClientId
-        AWS_COGNITO_CLIENT_SECRET: !Ref CognitoClientSecret
+AWSTemplateFormatVersion: '2010-09-09'  
+Transform: AWS::Serverless-2016-10-31  
+Description: Fastify API with AWS SAM  
 
 Parameters:
-  Environment:
+  Environment:  # Defines an environment parameter (dev, staging, or prod)
     Type: String
     Default: dev
     AllowedValues:
@@ -25,20 +12,44 @@ Parameters:
       - prod
     Description: Environment type
   
-  CognitoUserPoolId:
+  CognitoUserPoolId:  # Parameter for Cognito User Pool ID (used for authentication)
     Type: String
     Default: ''
     Description: Cognito User Pool ID
   
-  CognitoClientId:
+  CognitoClientId:  # Parameter for Cognito Client ID (used for authentication)
     Type: String
     Default: ''
     Description: Cognito Client ID
   
-  CognitoClientSecret:
+  CognitoClientSecret:  # Parameter for Cognito Client Secret (used for authentication)
     Type: String
     Default: ''
     Description: Cognito Client Secret
+    
+  DomainName:  # Custom domain name for the API
+    Type: String
+    Default: api.jonathanmau.com
+    Description: Custom domain name for API
+  
+  CertificateArn:  # SSL certificate ARN for securing the custom domain
+    Type: String
+    Description: arn:aws:acm:us-west-2:034362047054:certificate/e5f34f19-bed2-457b-8ef5-fa6cb14c98d7
+
+Globals:
+  Function:
+    Timeout: 30  # Sets the function timeout to 30 seconds
+    MemorySize: 128  # Allocates 128 MB of memory for the Lambda function
+    Environment:  # Defines environment variables for the Lambda function
+      Variables:
+        NODE_ENV: !Ref Environment  # Sets NODE_ENV based on the environment parameter
+        PORT: 3010  # Defines the port the Fastify server will use
+        AWS_REGION: us-west-2  # Defines the AWS region
+        AWS_COGNITO_USER_POOL_ID: !Ref CognitoUserPoolId  # Passes Cognito User Pool ID
+        AWS_COGNITO_CLIENT_ID: !Ref CognitoClientId  # Passes Cognito Client ID
+        AWS_COGNITO_CLIENT_SECRET: !Ref CognitoClientSecret  # Passes Cognito Client Secret
+        USE_AWS_CREDENTIALS: false  # Enables the use of AWS credentials in the Lambda function
+
 
 Resources:
   FastifyApiFunction:
@@ -55,14 +66,35 @@ Resources:
           Properties:
             Path: /{proxy+}
             Method: ANY
+            RestApiId: !Ref ApiGateway
       Policies:
         - AWSLambdaBasicExecutionRole
-        # Add additional policies as needed for your specific use case
-
+        # Add specific Cognito permissions for the commands you're using
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:SignUp
+                - cognito-idp:AdminUpdateUserAttributes
+                - cognito-idp:ConfirmSignUp
+                - cognito-idp:GetUser
+                - cognito-idp:InitiateAuth
+                - cognito-idp:ForgotPassword
+                - cognito-idp:ConfirmForgotPassword
+                - cognito-idp:ResendConfirmationCode
+              Resource: 
+                - !Sub "arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${CognitoUserPoolId}"
+                - !Sub "arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${CognitoUserPoolId}/client/*"
+                
 Outputs:
-  FastifyApi:
+  FastifyApi:  # Output for the API Gateway endpoint
     Description: API Gateway endpoint URL for your Fastify API
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
-  FastifyApiFunction:
+    Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+  
+  CustomDomainUrl:  # Output for the custom domain URL
+    Description: Custom domain URL for your API
+    Value: !Sub "https://${DomainName}/"
+  
+  FastifyApiFunction:  # Output for the Lambda function ARN
     Description: Lambda Function ARN
     Value: !GetAtt FastifyApiFunction.Arn

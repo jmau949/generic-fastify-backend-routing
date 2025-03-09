@@ -1,12 +1,10 @@
 import {
   SignUpCommand,
   AdminUpdateUserAttributesCommand,
-  AdminDeleteUserCommand,
   ConfirmSignUpCommand,
   GetUserCommand,
   AuthFlowType,
   InitiateAuthCommand,
-  AdminResetUserPasswordCommand,
   ForgotPasswordCommand,
   ConfirmForgotPasswordCommand,
   GetUserCommandOutput,
@@ -17,6 +15,10 @@ import { calculateSecretHash } from "../utils/crypto-utils";
 const USER_POOL_ID = process.env.AWS_COGNITO_USER_POOL_ID;
 const CLIENT_ID = process.env.AWS_COGNITO_CLIENT_ID;
 const CLIENT_SECRET = process.env.AWS_COGNITO_CLIENT_SECRET;
+// Validate the required environment variables
+if (!CLIENT_ID || !CLIENT_SECRET) {
+  throw new Error("Cognito credentials not found in environment variables");
+}
 
 interface UserDetails {
   email: string;
@@ -100,17 +102,17 @@ export const userService = {
     return { email, firstName, lastName, userId };
   },
 
-  async updateUserAttributes({ email, firstName, lastName }: UserDetails) {
-    const command = new AdminUpdateUserAttributesCommand({
-      UserPoolId: USER_POOL_ID,
-      Username: email,
-      UserAttributes: [
-        { Name: "given_name", Value: firstName },
-        { Name: "family_name", Value: lastName },
-      ],
-    });
-    await cognitoClient.send(command);
-  },
+  // async updateUserAttributes({ email, firstName, lastName }: UserDetails) {
+  //   const command = new AdminUpdateUserAttributesCommand({
+  //     UserPoolId: USER_POOL_ID,
+  //     Username: email,
+  //     UserAttributes: [
+  //       { Name: "given_name", Value: firstName },
+  //       { Name: "family_name", Value: lastName },
+  //     ],
+  //   });
+  //   await cognitoClient.send(command);
+  // },
 
   async forgotPassword(email: string) {
     const command = new ForgotPasswordCommand({
