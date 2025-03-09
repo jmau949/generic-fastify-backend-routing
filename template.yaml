@@ -34,7 +34,8 @@ Parameters:
   
   CertificateArn:  # SSL certificate ARN for securing the custom domain
     Type: String
-    Description: arn:aws:acm:us-west-2:034362047054:certificate/e5f34f19-bed2-457b-8ef5-fa6cb14c98d7
+    Default: arn:aws:acm:us-west-2:034362047054:certificate/e5f34f19-bed2-457b-8ef5-fa6cb14c98d7
+    Description: ACM Certificate
 
 Globals:
   Function:
@@ -44,7 +45,6 @@ Globals:
       Variables:
         NODE_ENV: !Ref Environment  # Sets NODE_ENV based on the environment parameter
         PORT: 3010  # Defines the port the Fastify server will use
-        AWS_REGION: us-west-2  # Defines the AWS region
         AWS_COGNITO_USER_POOL_ID: !Ref CognitoUserPoolId  # Passes Cognito User Pool ID
         AWS_COGNITO_CLIENT_ID: !Ref CognitoClientId  # Passes Cognito Client ID
         AWS_COGNITO_CLIENT_SECRET: !Ref CognitoClientSecret  # Passes Cognito Client Secret
@@ -96,8 +96,6 @@ Resources:
       Domain:
         DomainName: !Ref DomainName
         CertificateArn: !Ref CertificateArn
-        Route53:
-          HostedZoneName: jonathanmau.com.
         BasePath: ["/"]
 Outputs:
   FastifyApi:  # Output for the API Gateway endpoint
