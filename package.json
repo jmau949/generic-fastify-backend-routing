@@ -1,13 +1,13 @@
 {
   "name": "generic-fastify-backend-routing",
   "version": "1.0.0",
-  "main": "src/index.ts",
+  "main": "src/server.ts",
   "scripts": {
     "dev": "cross-env NODE_ENV=dev nodemon --exec ts-node ./src/server.ts",
     "build": "tsc",
     "start": "node ./dist/server",
     "test": "echo \"Error: no test specified\" && exit 0",
-    "build:lambda": "esbuild src/lambda.ts --bundle --platform=node --target=node18 --outdir=dist",
+    "build:lambda": "esbuild src/lambda.ts --bundle --platform=node --target=node18 --format=cjs --outdir=dist",
     "sam:local": "sam local start-api --env-vars env.json",
     "sam:build": "npm run build:lambda && sam build",
     "sam:deploy": "sam deploy --guided"
