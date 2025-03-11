@@ -97,29 +97,34 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
   server.post("/refresh-token", async (request, reply) => {
     try {
       const refreshToken = request.cookies.refreshToken;
+      const email = request.cookies["email"]; // Get email from secure cookie
 
-      if (!refreshToken) {
+      if (!refreshToken || !email) {
         return reply.code(401).send({
           error: "Missing refresh token",
         });
       }
       // Call Cognito to get a new access token using the refresh token
-      const { AccessToken, RefreshToken } = await userService.refreshToken(refreshToken);
+      const { AccessToken, RefreshToken } = await userService.refreshToken(refreshToken, email);
+
       reply.setCookie(AUTH_TOKEN, AccessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
         path: "/",
-        maxAge: 60 * 60 * 1000, // 1 hour
+        maxAge: 12 * 60 * 60, // **12 hours in seconds**
       });
 
-      reply.setCookie(REFRESH_TOKEN, RefreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        path: "/",
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days (longer than access token)
-      });
+      // Set new Refresh Token in cookie (only if Cognito rotates tokens)
+      if (RefreshToken) {
+        reply.setCookie(REFRESH_TOKEN, RefreshToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "strict",
+          path: "/",
+          maxAge: 7 * 24 * 60 * 60, // 7 days
+        });
+      }
 
       return reply.code(200).send({});
     } catch (error) {
@@ -145,7 +150,7 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
     async (request, reply) => {
       try {
         const { AccessToken, RefreshToken } = await userService.login(request.body.user);
-
+        const email = request.body.user.email; // Extract email from request
         reply.setCookie(AUTH_TOKEN, AccessToken, {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
@@ -156,6 +161,14 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
         // Set Refresh Token Cookie
         reply.setCookie(REFRESH_TOKEN, RefreshToken, {
           httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "strict",
+          path: "/",
+        });
+
+        // **Set Email Cookie for Token Refresh**
+        reply.setCookie("email", email, {
+          httpOnly: true, // Prevents JavaScript access (protects from XSS)
           secure: process.env.NODE_ENV === "production",
           sameSite: "strict",
           path: "/",
@@ -217,8 +230,9 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
 
   // **User logout**
   server.post("/logout", async (request, reply) => {
-    reply.clearCookie("authToken");
-    return reply.code(200).send({ message: "Logged out successfully" });
+    reply.clearCookie(AUTH_TOKEN);
+    reply.clearCookie(REFRESH_TOKEN);
+    return reply.code(200).send({});
   });
 
   server.post<{ Body: IUserForgotPassword }>(

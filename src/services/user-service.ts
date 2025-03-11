@@ -143,13 +143,13 @@ export const userService = {
     });
     await cognitoClient.send(command);
   },
-  async refreshToken(refreshToken: string) {
+  async refreshToken(refreshToken: string, email: string) {
     const command = new InitiateAuthCommand({
       AuthFlow: REFRESH_TOKEN_AUTH,
       ClientId: CLIENT_ID,
       AuthParameters: {
         REFRESH_TOKEN: refreshToken,
-        SECRET_HASH: generateSecretHash(refreshToken),
+        SECRET_HASH: generateSecretHash(email),
       },
     });
 
