@@ -33,6 +33,8 @@ class Application {
   constructor() {
     this.server = fastify({
       logger: true, // Enables request logging (useful for debugging in development)
+      keepAliveTimeout: 60000, // Keep connections open for 60s
+      connectionTimeout: 60000,
     });
   }
 

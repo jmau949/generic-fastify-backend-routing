@@ -13,7 +13,11 @@ import corsConfig from "./config/corsConfig";
 import auth from "./plugins/auth";
 
 // Create the Fastify app
-const app: FastifyInstance = fastify({ logger: true });
+const app: FastifyInstance = fastify({
+  logger: true,
+  keepAliveTimeout: 60000, // Keep connections open for 60s
+  connectionTimeout: 60000, // Avoid frequent reconnections
+});
 
 // Register plugins
 const env = (process.env.NODE_ENV as keyof typeof corsConfig) || "dev";
