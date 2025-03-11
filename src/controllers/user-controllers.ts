@@ -250,13 +250,11 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
     },
     async (request, reply) => {
       try {
-        console.log("request.body", request.body);
         const { email, code, password } = request.body.user;
         await userService.confirmForgotPassword(email, code, password);
         return reply.code(200).send({});
       } catch (error) {
         console.log("error", error);
-        console.log("error.name", error.name);
         return reply.code(400).send({ error: error.message, errorCode: error.name });
       }
     }
