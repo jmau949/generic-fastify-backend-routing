@@ -27,7 +27,7 @@ import {
 
 import { userService } from "../services/user-service";
 
-import { AUTH_TOKEN } from "../config/constants";
+import { AUTH_TOKEN, REFRESH_TOKEN } from "../config/constants";
 
 export const userController: FastifyPluginCallback = (server, options, done) => {
   // **Get authenticated user**
@@ -93,6 +93,46 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
     }
   );
 
+  // **Add a refresh token endpoint**
+  server.post("/refresh-token", async (request, reply) => {
+    try {
+      const refreshToken = request.cookies.refreshToken;
+
+      if (!refreshToken) {
+        return reply.code(401).send({
+          error: "Missing refresh token",
+        });
+      }
+      // Call Cognito to get a new access token using the refresh token
+      const { AccessToken, RefreshToken } = await userService.refreshToken(refreshToken);
+      reply.setCookie(AUTH_TOKEN, AccessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        path: "/",
+        maxAge: 60 * 60 * 1000, // 1 hour
+      });
+
+      reply.setCookie(REFRESH_TOKEN, RefreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        path: "/",
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days (longer than access token)
+      });
+
+      return reply.code(200).send({});
+    } catch (error) {
+      console.error("Token refresh error:", error);
+
+      // Clear both tokens on refresh failure
+      reply.clearCookie(AUTH_TOKEN);
+      reply.clearCookie(REFRESH_TOKEN);
+
+      return reply.code(400).send({ error: error.message, errorCode: error.name });
+    }
+  });
+
   // **User login**
   server.post<{ Body: IUserEmail }>(
     "/login",
@@ -104,17 +144,25 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
     },
     async (request, reply) => {
       try {
-        const accessToken = await userService.login(request.body.user);
-        reply.setCookie(AUTH_TOKEN, accessToken, {
+        const { AccessToken, RefreshToken } = await userService.login(request.body.user);
+
+        reply.setCookie(AUTH_TOKEN, AccessToken, {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
           sameSite: "strict",
           path: "/",
         });
+
+        // Set Refresh Token Cookie
+        reply.setCookie(REFRESH_TOKEN, RefreshToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "strict",
+          path: "/",
+        });
+
         return reply.code(200).send({});
       } catch (error) {
-        console.error("error", error);
-
         if (error?.__type === "UserNotConfirmedException") {
           return reply.code(403).send({
             error: "User not confirmed. Please check your email for a verification link.",

@@ -12,6 +12,7 @@ import {
 } from "@aws-sdk/client-cognito-identity-provider";
 import cognitoClient from "../config/cognito";
 import { calculateSecretHash } from "../utils/crypto-utils";
+import { REFRESH_TOKEN_AUTH } from "../config/constants";
 const USER_POOL_ID = process.env.AWS_COGNITO_USER_POOL_ID;
 const CLIENT_ID = process.env.AWS_COGNITO_CLIENT_ID;
 const CLIENT_SECRET = process.env.AWS_COGNITO_CLIENT_SECRET;
@@ -66,7 +67,7 @@ export const userService = {
     });
     const response = await cognitoClient.send(command);
     if (!response.AuthenticationResult?.AccessToken) throw new Error("Missing authentication token");
-    return response.AuthenticationResult.AccessToken;
+    return response.AuthenticationResult;
   },
   // web verify
   async verifyUser(token: string) {
@@ -141,5 +142,18 @@ export const userService = {
       SecretHash: generateSecretHash(email),
     });
     await cognitoClient.send(command);
+  },
+  async refreshToken(refreshToken: string) {
+    const command = new InitiateAuthCommand({
+      AuthFlow: REFRESH_TOKEN_AUTH,
+      ClientId: CLIENT_ID,
+      AuthParameters: {
+        REFRESH_TOKEN: refreshToken,
+        SECRET_HASH: generateSecretHash(refreshToken),
+      },
+    });
+
+    const response = await cognitoClient.send(command);
+    return response.AuthenticationResult;
   },
 };
