@@ -3,7 +3,8 @@ const corsConfig = {
     origin: "http://localhost:5173", // Allow local development frontend
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Added OPTIONS for preflight
     credentials: true, // Allow credentials to be included
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Request-ID"], // Ensure consistent casing
+    exposedHeaders: ["X-Request-ID"],
   },
   production: {
     origin: [
@@ -14,7 +15,8 @@ const corsConfig = {
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Added OPTIONS for preflight
     credentials: true, // Enable credentials for cookies
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Request-ID"], // Ensure consistent casing
+    exposedHeaders: ["X-Request-ID"],
   },
 };
 
