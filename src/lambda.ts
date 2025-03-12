@@ -1,40 +1,27 @@
 import "reflect-metadata";
-import fastify, { FastifyInstance } from "fastify";
+import fastify, { FastifyInstance, FastifyRequest } from "fastify";
 import awsLambdaFastify from "@fastify/aws-lambda";
 import { Context, APIGatewayProxyEvent } from "aws-lambda";
 import cors from "@fastify/cors";
 import fastifyCookie from "@fastify/cookie";
 import fastifyHelmet from "@fastify/helmet";
-import { v4 as uuidv4 } from "uuid"; // Add this import
+import fastifyRateLimit from "@fastify/rate-limit";
+import * as Sentry from "@sentry/node";
+import { v4 as uuidv4 } from "uuid";
 
 // Import your controllers and configurations
+import sentryMonitoring from "./plugins/sentry-monitoring";
 import { userController } from "./controllers/user-controllers";
 import config from "./config/config";
 import corsConfig from "./config/corsConfig";
 import auth from "./plugins/auth";
+import errorPlugin from "./plugins/error-handler";
+import { sendErrorResponse } from "./utils/error-handler";
+import logger, { loggerOptions } from "./utils/logger";
 
 // Create the Fastify app
 const app: FastifyInstance = fastify({
-  logger: {
-    level: "info",
-    transport: {
-      target: "pino-pretty",
-      options: { colorize: true },
-    },
-    // Add request ID to all logs
-    serializers: {
-      req: (request) => {
-        return {
-          id: request.id,
-          method: request.method,
-          url: request.url,
-          headers: {
-            "x-request-id": request.headers["x-request-id"],
-          },
-        };
-      },
-    },
-  },
+  logger: loggerOptions,
   keepAliveTimeout: 60000,
   connectionTimeout: 60000,
   // Generate request ID for each request
@@ -42,91 +29,65 @@ const app: FastifyInstance = fastify({
     // Extract request ID from Lambda event headers or generate new one
     return (request.headers["x-request-id"] as string) || uuidv4();
   },
+  trustProxy: process.env.NODE_ENV === "production", // Trust proxy headers in production
 });
 
 // Register plugins
-const env = (process.env.NODE_ENV as keyof typeof corsConfig) || "dev";
-app.register(fastifyHelmet);
+const registerPlugins = () => {
+  const env = (process.env.NODE_ENV as keyof typeof corsConfig) || "dev";
 
-// Update CORS config to include X-Request-ID
-app.register(cors, corsConfig[env]);
+  // Register Sentry monitoring first
+  app.register(sentryMonitoring);
 
-app.register(fastifyCookie, {
-  parseOptions: {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 7,
-  },
-});
-app.register(auth);
+  // Register security plugins
+  app.register(fastifyHelmet);
 
-// Add request tracing hooks
-app.addHook("onRequest", (request, reply, done) => {
-  // Set X-Request-ID header in the response
-  reply.header("X-Request-ID", request.id);
+  // Register CORS
+  app.register(cors, corsConfig[env]);
 
-  // Add request start time for calculating duration
-  request.startTime = process.hrtime();
-
-  // Log start of request
-  request.log.info({
-    event: "request_start",
-    requestId: request.id,
-    path: request.url,
-    method: request.method,
+  // Register cookie handling
+  app.register(fastifyCookie, {
+    parseOptions: {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7, // 1 week
+    },
   });
 
-  done();
-});
+  // Rate limiting for security
+  app.register(fastifyRateLimit, {
+    max: 100,
+    timeWindow: "1 minute",
+    // Skip rate limiting for health checks
+    skip: (request: FastifyRequest) => request.url.startsWith("/health"),
+  } as any);
 
-// Add response hook to log request completion with timing
-app.addHook("onResponse", (request, reply, done) => {
-  // Calculate request duration
-  const hrDuration = process.hrtime(request.startTime);
-  const durationMs = hrDuration[0] * 1000 + hrDuration[1] / 1000000;
+  // Register authentication plugin
+  app.register(auth);
 
-  // Log request completion
-  request.log.info({
-    event: "request_end",
-    requestId: request.id,
-    responseTime: durationMs.toFixed(2) + "ms",
-    statusCode: reply.statusCode,
-    path: request.url,
-    method: request.method,
+  // Register request tracking and error handling
+  app.register(errorPlugin);
+};
+
+// Register all controllers
+const registerControllers = () => {
+  // Health check endpoint for load balancers
+  app.get("/health", async (request, reply) => {
+    return { status: "ok", timestamp: new Date().toISOString() };
   });
 
-  done();
-});
-
-// Add error handler
-app.setErrorHandler((error, request, reply) => {
-  request.log.error({
-    err: error,
-    stack: error.stack,
-    event: "request_error",
-    requestId: request.id,
-    path: request.url,
-    method: request.method,
+  // Register user routes
+  app.register(userController, {
+    prefix: `${config.apiPrefix}/users`,
   });
+};
 
-  // Determine appropriate status code and message
-  const statusCode = error.statusCode || 500;
-  const message = error.message || "Internal Server Error";
-
-  // Return standardized error response with request ID
-  reply.code(statusCode).send({
-    error: message,
-    statusCode,
-    requestId: request.id,
-  });
-});
-
-// Register controllers
-app.register(userController, {
-  prefix: `${config.apiPrefix}/users`,
-});
+// Register all plugins and controllers
+app.log.info(`Starting Lambda in ${process.env.NODE_ENV || "development"} mode`);
+registerPlugins();
+registerControllers();
 
 // Create the Lambda handler
 const proxy = awsLambdaFastify(app);
@@ -140,9 +101,36 @@ export const handler = async (event: APIGatewayProxyEvent, context: Context) => 
   return proxy(event, context);
 };
 
+// Lambda has its own lifecycle management, but we can define a cleanup function
+// that AWS Lambda may call during function shutdown
+export const cleanup = async () => {
+  app.log.info("Lambda shutdown initiated");
+
+  try {
+    // Close Fastify server - stops accepting new connections
+    await app.close();
+
+    // Close Sentry if it's being used
+    if (process.env.SENTRY_DSN) {
+      await Sentry.close(2000);
+    }
+
+    app.log.info("Lambda shutdown completed");
+  } catch (err) {
+    app.log.error("Error during shutdown:", err);
+    throw err;
+  }
+};
+
 // Extend Fastify request interface
 declare module "fastify" {
   interface FastifyRequest {
     startTime?: [number, number];
+    user?: {
+      userId: string;
+      email: string;
+      firstName?: string;
+      lastName?: string;
+    };
   }
 }
