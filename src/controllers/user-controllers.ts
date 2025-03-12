@@ -26,7 +26,7 @@ import {
 } from "./schemas/user.schemas";
 
 import { userService } from "../services/user-service";
-
+import { sendErrorResponse } from "../utils/error-handler";
 import { AUTH_TOKEN, REFRESH_TOKEN } from "../config/constants";
 
 export const userController: FastifyPluginCallback = (server, options, done) => {
@@ -44,8 +44,9 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
         return reply.send({ user });
       } catch (error) {
         reply.clearCookie("authToken");
-        console.log("ERROR", error);
-        return reply.code(401).send({ error: "Session expired or invalid" });
+        reply.clearCookie("refreshToken");
+        reply.clearCookie("email");
+        return sendErrorResponse(reply, error);
       }
     }
   );
@@ -64,13 +65,12 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
         const user = await userService.createUser(request.body.user);
         return reply.code(200).send({ user });
       } catch (error) {
-        console.log("error", error);
-        return reply.code(400).send({ error: error.message, errorCode: error.name });
+        return sendErrorResponse(reply, error);
       }
     }
   );
 
-  // // User verify
+  // User verify
   server.post<{ Body: IUserVerify }>(
     "/confirm",
     {
@@ -87,8 +87,7 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
         });
         return reply.code(200).send({});
       } catch (error) {
-        console.log("error", error);
-        return reply.code(400).send({ error: error.message, errorCode: error.name });
+        return sendErrorResponse(reply, error);
       }
     }
   );
@@ -97,48 +96,49 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
   server.post("/refresh-token", async (request, reply) => {
     try {
       const refreshToken = request.cookies.refreshToken;
-      const email = request.cookies["email"]; // Get email from secure cookie
+      const email = request.cookies["email"];
 
       if (!refreshToken || !email) {
         return reply.code(401).send({
-          error: "Missing refresh token",
+          error: "Missing refresh token or email",
+          errorCode: "INVALID_REFRESH_REQUEST",
         });
       }
-      // Call Cognito to get a new access token using the refresh token
+
       const { AccessToken, RefreshToken } = await userService.refreshToken(refreshToken, email);
 
-      reply.setCookie(AUTH_TOKEN, AccessToken, {
+      // Set cookie configuration - extract to a helper for consistency
+      const cookieConfig = {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
+        sameSite: "strict" as "strict" | "lax" | "none",
         path: "/",
-        maxAge: 12 * 60 * 60, // **12 hours in seconds**
+      };
+
+      reply.setCookie(AUTH_TOKEN, AccessToken, {
+        ...cookieConfig,
+        maxAge: 12 * 60 * 60, // 12 hours in seconds
       });
 
-      // Set new Refresh Token in cookie (only if Cognito rotates tokens)
       if (RefreshToken) {
         reply.setCookie(REFRESH_TOKEN, RefreshToken, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "strict",
-          path: "/",
+          ...cookieConfig,
           maxAge: 7 * 24 * 60 * 60, // 7 days
         });
       }
 
       return reply.code(200).send({});
     } catch (error) {
-      console.error("Token refresh error:", error);
-
-      // Clear both tokens on refresh failure
+      // Clear all auth cookies on failure
       reply.clearCookie(AUTH_TOKEN);
       reply.clearCookie(REFRESH_TOKEN);
+      reply.clearCookie("email");
 
-      return reply.code(400).send({ error: error.message, errorCode: error.name });
+      return sendErrorResponse(reply, error);
     }
   });
 
-  // **User login**
+  // Remaining controller methods with updated error handling
   server.post<{ Body: IUserEmail }>(
     "/login",
     {
@@ -150,91 +150,36 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
     async (request, reply) => {
       try {
         const { AccessToken, RefreshToken } = await userService.login(request.body.user);
-        const email = request.body.user.email; // Extract email from request
-        reply.setCookie(AUTH_TOKEN, AccessToken, {
+        const email = request.body.user.email;
+
+        // Cookie configuration
+        const cookieConfig = {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
-          sameSite: "strict",
+          sameSite: "strict" as "strict" | "lax" | "none",
           path: "/",
-        });
+        };
 
-        // Set Refresh Token Cookie
-        reply.setCookie(REFRESH_TOKEN, RefreshToken, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "strict",
-          path: "/",
-        });
-
-        // **Set Email Cookie for Token Refresh**
-        reply.setCookie("email", email, {
-          httpOnly: true, // Prevents JavaScript access (protects from XSS)
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "strict",
-          path: "/",
-        });
+        reply.setCookie(AUTH_TOKEN, AccessToken, cookieConfig);
+        reply.setCookie(REFRESH_TOKEN, RefreshToken, cookieConfig);
+        reply.setCookie("email", email, cookieConfig);
 
         return reply.code(200).send({});
       } catch (error) {
-        if (error?.__type === "UserNotConfirmedException") {
-          return reply.code(403).send({
-            error: "User not confirmed. Please check your email for a verification link.",
-            errorCode: error.name,
-          });
-        } else if (error?.__type === "NotAuthorizedException") {
-          return reply.code(400).send({
-            error: "Incorrect username or password. Please verify your credentials.",
-            errorCode: error.name,
-          });
-        } else if (error?.__type === "UserNotFoundException") {
-          return reply.code(404).send({
-            error: "User not found. Please register or check your email address.",
-            errorCode: error.name,
-          });
-        } else if (error?.__type === "PasswordResetRequiredException") {
-          return reply.code(403).send({
-            error: "Password reset required. Please reset your password before logging in.",
-            errorCode: error.name,
-          });
-        }
-
-        // For all other errors, return a generic message with details if available.
-        return reply.code(401).send({
-          error: "Authentication failed",
-          errorCode: null,
-        });
+        return sendErrorResponse(reply, error);
       }
     }
   );
 
-  // // **User update**
-  // server.put<{ Body: IUserBody }>(
-  //   "/",
-  //   {
-  //     schema: {
-  //       body: userUpdateRequestSchema.body,
-  //       response: userUpdateResponseSchema.response,
-  //     },
-  //     preHandler: server.authentication,
-  //   },
-  //   async (request, reply) => {
-  //     try {
-  //       await userService.updateUserAttributes(request.body.user);
-  //       return reply.code(200).send({});
-  //     } catch (error) {
-  //       console.log("error", error);
-  //       return reply.code(400).send({ error: error.message, errorCode: error.name });
-  //     }
-  //   }
-  // );
-
-  // **User logout**
+  // User logout
   server.post("/logout", async (request, reply) => {
     reply.clearCookie(AUTH_TOKEN);
     reply.clearCookie(REFRESH_TOKEN);
+    reply.clearCookie("email");
     return reply.code(200).send({});
   });
 
+  // Forgot password flow
   server.post<{ Body: IUserForgotPassword }>(
     "/forgot-password",
     {
@@ -248,8 +193,7 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
         await userService.forgotPassword(request.body.user.email);
         return reply.code(200).send({});
       } catch (error) {
-        console.log("error", error);
-        return reply.code(400).send({ error: error.message, errorCode: error.name });
+        return sendErrorResponse(reply, error);
       }
     }
   );
@@ -268,8 +212,7 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
         await userService.confirmForgotPassword(email, code, password);
         return reply.code(200).send({});
       } catch (error) {
-        console.log("error", error);
-        return reply.code(400).send({ error: error.message, errorCode: error.name });
+        return sendErrorResponse(reply, error);
       }
     }
   );
@@ -288,8 +231,7 @@ export const userController: FastifyPluginCallback = (server, options, done) => 
         await userService.resendConfirmationCode(email);
         return reply.code(200).send({});
       } catch (error) {
-        console.log("error", error);
-        return reply.code(400).send({ error: error.message, errorCode: error.name });
+        return sendErrorResponse(reply, error);
       }
     }
   );

@@ -16,6 +16,7 @@ import { REFRESH_TOKEN_AUTH } from "../config/constants";
 const USER_POOL_ID = process.env.AWS_COGNITO_USER_POOL_ID;
 const CLIENT_ID = process.env.AWS_COGNITO_CLIENT_ID;
 const CLIENT_SECRET = process.env.AWS_COGNITO_CLIENT_SECRET;
+import { AuthError } from "../utils/error-handler";
 // Validate the required environment variables
 if (!CLIENT_ID || !CLIENT_SECRET) {
   throw new Error("Cognito credentials not found in environment variables");
@@ -71,7 +72,7 @@ export const userService = {
   },
   // web verify
   async verifyUser(token: string) {
-    if (!token) throw new Error("Unauthorized - No Token");
+    if (!token) throw new AuthError("Authentication required", "MISSING_TOKEN");
 
     const response: GetUserCommandOutput = await cognitoClient.send(new GetUserCommand({ AccessToken: token }));
 
