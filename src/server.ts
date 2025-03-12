@@ -32,7 +32,13 @@ class Application {
   // **Constructor:** Initializes the Fastify server instance
   constructor() {
     this.server = fastify({
-      logger: true, // Enables request logging (useful for debugging in development)
+      logger: {
+        level: "info", // Adjust based on your needs
+        transport: {
+          target: "pino-pretty",
+          options: { colorize: true },
+        },
+      },
       keepAliveTimeout: 60000, // Keep connections open for 60s
       connectionTimeout: 60000,
     });
