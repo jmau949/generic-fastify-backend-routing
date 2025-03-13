@@ -36,6 +36,11 @@ Parameters:
     Type: String
     Default: arn:aws:acm:us-west-2:034362047054:certificate/e5f34f19-bed2-457b-8ef5-fa6cb14c98d7
     Description: ACM Certificate
+    
+  SentryDsn:  # SSL certificate ARN for securing the custom domain
+    Type: String
+    Default: ''
+    Description: Sentry DSN
 
 Globals:
   Function:
@@ -49,7 +54,7 @@ Globals:
         AWS_COGNITO_CLIENT_ID: !Ref CognitoClientId  # Passes Cognito Client ID
         AWS_COGNITO_CLIENT_SECRET: !Ref CognitoClientSecret  # Passes Cognito Client Secret
         USE_AWS_CREDENTIALS: false  # Enables the use of AWS credentials in the Lambda function
-
+        SENTRY_DSN: !Ref SentryDsn
 
 Resources:
   FastifyApiFunction:
