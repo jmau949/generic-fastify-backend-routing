@@ -81,8 +81,11 @@ Explanation of Variables:
 - **COOKIE_SECRET** → Secret for signing cookies.
 - **NODE_ENV** → Set to production for live environments.
 
+# Below are for lambda deployments
 
-CERTIFICATE_ARN, SENTRY_LAMBDA_LAYER_ARN are for lambda deployments
+- **CERTIFICATE_ARN**
+- **SENTRY_LAMBDA_LAYER_ARN**
+- **HOSTED_ZONE_ID**
 
 For running in Sam local, need env.json file that looks like env.example.json
 

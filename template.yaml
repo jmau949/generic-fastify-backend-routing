@@ -45,6 +45,11 @@ Parameters:
     Type: String
     Default: ''
     Description: Sentry Lambda Layer ARN
+    
+  ApiGatewayName:
+    Type: String
+    Default: 'jonathanmau-api'
+    Description: Name for the API Gateway (should remain consistent across deployments)
 
 Globals:
   Function:
@@ -64,6 +69,8 @@ Resources:
   # Create a new ACM Certificate for the subdomain
   ApiCertificate:
     Type: AWS::CertificateManager::Certificate
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       DomainName: !Ref DomainName
       ValidationMethod: DNS
@@ -107,28 +114,54 @@ Resources:
                 - !Sub "arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${CognitoUserPoolId}"
                 - !Sub "arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${CognitoUserPoolId}/client/*"
 
-  # API Gateway with REST API
+  # API Gateway with REST API - using logical IDs that stay consistent
   ApiGateway:
     Type: AWS::Serverless::Api
     Properties:
       StageName: Prod
       EndpointConfiguration:
         Type: REGIONAL
-      Domain:
-        DomainName: !Ref DomainName
-        CertificateArn: !Ref ApiCertificate
-        BasePath: ["/"]
+      # Using a custom name to ensure consistent DNS reference
+      Name: !Ref ApiGatewayName
 
-  # DNS Record for API Subdomain
+  # Create a separate custom domain name resource for API Gateway
+  ApiGatewayDomainName:
+    Type: AWS::ApiGateway::DomainName
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      DomainName: !Ref DomainName
+      RegionalCertificateArn: !Ref ApiCertificate
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+  
+  # Create a base path mapping to connect the API Gateway to the custom domain
+  ApiGatewayBasePathMapping:
+    Type: AWS::ApiGateway::BasePathMapping
+    DependsOn:
+      - ApiGateway
+      - ApiGatewayDomainName
+      # Reference the Stage that Serverless creates
+      - !Sub "${ApiGateway}Prod"
+    Properties:
+      DomainName: !Ref DomainName
+      RestApiId: !Ref ApiGateway
+      Stage: Prod
+
+  # DNS Record for API Subdomain - with retention policy to keep it across rebuilds
   ApiDnsRecord:
     Type: AWS::Route53::RecordSet
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    DependsOn: ApiGatewayDomainName
     Properties:
       HostedZoneId: !Ref HostedZoneId
       Name: !Ref DomainName
       Type: A
       AliasTarget:
-        DNSName: !GetAtt ApiGateway.RegionalDomainName
-        HostedZoneId: !GetAtt ApiGateway.RegionalHostedZoneId
+        DNSName: !GetAtt ApiGatewayDomainName.RegionalDomainName
+        HostedZoneId: !GetAtt ApiGatewayDomainName.RegionalHostedZoneId
 
 Outputs:
   FastifyApi:
@@ -146,3 +179,11 @@ Outputs:
   ApiCertificateArn:
     Description: ARN of the newly created ACM Certificate
     Value: !Ref ApiCertificate
+    
+  ApiHostedZoneId:
+    Description: Hosted Zone ID for the API Gateway domain
+    Value: !GetAtt ApiGatewayDomainName.RegionalHostedZoneId
+    
+  ApiGatewayDomainNameOutput:
+    Description: Domain name for the API Gateway
+    Value: !GetAtt ApiGatewayDomainName.RegionalDomainName
