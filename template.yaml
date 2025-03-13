@@ -3,7 +3,7 @@ Transform: AWS::Serverless-2016-10-31
 Description: Fastify API with AWS SAM  
 
 Parameters:
-  Environment:  # Defines an environment parameter (dev, staging, or prod)
+  Environment:
     Type: String
     Default: dev
     AllowedValues:
@@ -12,57 +12,65 @@ Parameters:
       - production
     Description: Environment type
   
-  CognitoUserPoolId:  # Parameter for Cognito User Pool ID (used for authentication)
+  CognitoUserPoolId:
     Type: String
     Default: ''
     Description: Cognito User Pool ID
   
-  CognitoClientId:  # Parameter for Cognito Client ID (used for authentication)
+  CognitoClientId:
     Type: String
     Default: ''
     Description: Cognito Client ID
   
-  CognitoClientSecret:  # Parameter for Cognito Client Secret (used for authentication)
+  CognitoClientSecret:
     Type: String
     Default: ''
     Description: Cognito Client Secret
     
-  DomainName:  # Custom domain name for the API
+  DomainName:
     Type: String
     Default: api.jonathanmau.com
     Description: Custom domain name for API
   
-  CertificateArn:  # SSL certificate ARN for securing the custom domain
+  HostedZoneId:
     Type: String
-    Default: ''
-    Description: ACM Certificate
-
-  SentryDsn:  # SSL certificate ARN for securing the custom domain
+    Description: Route 53 Hosted Zone ID for jonathanmau.com domain
+    
+  SentryDsn:
     Type: String
     Default: ''
     Description: Sentry DSN
     
-  SentryLambdaLayerArn:  # SSL certificate ARN for securing the custom domain
+  SentryLambdaLayerArn:
     Type: String
     Default: ''
-    Description: Sentry DSN
-
+    Description: Sentry Lambda Layer ARN
 
 Globals:
   Function:
-    Timeout: 30  # Sets the function timeout to 30 seconds
-    MemorySize: 128  # Allocates 128 MB of memory for the Lambda function
-    Environment:  # Defines environment variables for the Lambda function
+    Timeout: 30
+    MemorySize: 128
+    Environment:
       Variables:
-        NODE_ENV: !Ref Environment  # Sets NODE_ENV based on the environment parameter
-        PORT: 3010  # Defines the port the Fastify server will use
-        AWS_COGNITO_USER_POOL_ID: !Ref CognitoUserPoolId  # Passes Cognito User Pool ID
-        AWS_COGNITO_CLIENT_ID: !Ref CognitoClientId  # Passes Cognito Client ID
-        AWS_COGNITO_CLIENT_SECRET: !Ref CognitoClientSecret  # Passes Cognito Client Secret
-        USE_AWS_CREDENTIALS: false  # Enables the use of AWS credentials in the Lambda function
+        NODE_ENV: !Ref Environment
+        PORT: 3010
+        AWS_COGNITO_USER_POOL_ID: !Ref CognitoUserPoolId
+        AWS_COGNITO_CLIENT_ID: !Ref CognitoClientId
+        AWS_COGNITO_CLIENT_SECRET: !Ref CognitoClientSecret
+        USE_AWS_CREDENTIALS: false
         SENTRY_DSN: !Ref SentryDsn
 
 Resources:
+  # Create a new ACM Certificate for the subdomain
+  ApiCertificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !Ref DomainName
+      ValidationMethod: DNS
+      DomainValidationOptions:
+        - DomainName: !Ref DomainName
+          HostedZoneId: !Ref HostedZoneId
+
   FastifyApiFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -71,9 +79,7 @@ Resources:
       Runtime: nodejs18.x
       Architectures:
         - arm64
-      MemorySize: 1024  # Increased memory from default to 1024MB
-      # ProvisionedConcurrencyConfig: keep 2 instances of your Lambda function ready to execute at all times, even when there are no requests. This does incur costs regardless of whether your function is processing requests.
-      #   ProvisionedConcurrentExecutions: 2  # Pre-warmed instances Cost per day: ~$0.72 (plus execution costs when invoked)
+      MemorySize: 1024
       Layers:
         - !Ref SentryLambdaLayerArn
       Events:
@@ -85,7 +91,6 @@ Resources:
             RestApiId: !Ref ApiGateway
       Policies:
         - AWSLambdaBasicExecutionRole
-        # Add specific Cognito permissions for the commands you're using
         - Version: '2012-10-17'
           Statement:
             - Effect: Allow
@@ -111,17 +116,33 @@ Resources:
         Type: REGIONAL
       Domain:
         DomainName: !Ref DomainName
-        CertificateArn: !Ref CertificateArn
+        CertificateArn: !Ref ApiCertificate
         BasePath: ["/"]
+
+  # DNS Record for API Subdomain
+  ApiDnsRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref DomainName
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt ApiGateway.RegionalDomainName
+        HostedZoneId: !GetAtt ApiGateway.RegionalHostedZoneId
+
 Outputs:
-  FastifyApi:  # Output for the API Gateway endpoint
+  FastifyApi:
     Description: API Gateway endpoint URL for your Fastify API
     Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
   
-  CustomDomainUrl:  # Output for the custom domain URL
+  CustomDomainUrl:
     Description: Custom domain URL for your API
     Value: !Sub "https://${DomainName}/"
   
-  FastifyApiFunction:  # Output for the Lambda function ARN
+  FastifyApiFunction:
     Description: Lambda Function ARN
     Value: !GetAtt FastifyApiFunction.Arn
+  
+  ApiCertificateArn:
+    Description: ARN of the newly created ACM Certificate
+    Value: !Ref ApiCertificate
