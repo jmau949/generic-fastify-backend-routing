@@ -121,7 +121,6 @@ Resources:
       StageName: Prod
       EndpointConfiguration:
         Type: REGIONAL
-      # Using a custom name to ensure consistent DNS reference
       Name: !Ref ApiGatewayName
 
   # Create a separate custom domain name resource for API Gateway
@@ -135,19 +134,17 @@ Resources:
       EndpointConfiguration:
         Types:
           - REGIONAL
-  
+
   # Create a base path mapping to connect the API Gateway to the custom domain
   ApiGatewayBasePathMapping:
     Type: AWS::ApiGateway::BasePathMapping
     DependsOn:
       - ApiGateway
       - ApiGatewayDomainName
-      # Reference the Stage that Serverless creates
-      - !Sub "${ApiGateway}Prod"
     Properties:
       DomainName: !Ref DomainName
       RestApiId: !Ref ApiGateway
-      Stage: Prod
+      Stage: !Ref ApiGateway.Stage  # Use the stage managed by SAM
 
   # DNS Record for API Subdomain - with retention policy to keep it across rebuilds
   ApiDnsRecord:
