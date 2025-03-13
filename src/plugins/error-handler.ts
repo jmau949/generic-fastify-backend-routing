@@ -14,6 +14,7 @@ import { AppError, sendErrorResponse } from "../utils/error-handler";
 const errorHandlerPlugin: FastifyPluginCallback = (fastify: FastifyInstance, options, done) => {
   // 1️⃣ Custom error handler for handling application errors
   fastify.setErrorHandler((error, request, reply) => {
+    console.log("error handler");
     // Log the error details, including stack trace and request metadata
     request.log.error({
       err: error, // The actual error object
