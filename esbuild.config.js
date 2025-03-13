@@ -14,6 +14,7 @@ esbuild
     // Exclude specific dependencies from the bundle to reduce package size
     external: [
       "aws-sdk", // Exclude AWS SDK (available in AWS Lambda runtime)
+      "@sentry/node", // Exclude Sentry (provided by Lambda layer)
     ],
   })
   .catch((err) => {

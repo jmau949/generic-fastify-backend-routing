@@ -81,7 +81,12 @@ Explanation of Variables:
 - **COOKIE_SECRET** → Secret for signing cookies.
 - **NODE_ENV** → Set to production for live environments.
 
+
+CERTIFICATE_ARN, SENTRY_LAMBDA_LAYER_ARN are for lambda deployments
+
 For running in Sam local, need env.json file that looks like env.example.json
+
+
 
 ## **Running the Server**
 
@@ -113,6 +118,23 @@ http://localhost:3010
 npm run build:lambda
 npm run sam:build
 npm run sam:deploy
+```
+
+to create lambda layers
+```
+mkdir -p sentry-layer/nodejs
+cd sentry-layer/nodejs
+npm init -y
+npm install @sentry/node@9.5.0
+cd ..
+zip -r sentry-layer.zip nodejs
+
+aws lambda publish-layer-version \
+  --layer-name SentryLayer \
+  --description "Sentry monitoring package for Fastify Lambda" \
+  --zip-file fileb://sentry-layer.zip \
+  --compatible-runtimes nodejs18.x \
+  --region us-west-2
 ```
 
 

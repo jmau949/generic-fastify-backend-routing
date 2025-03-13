@@ -55,19 +55,6 @@ const errorMonitoringPlugin: FastifyPluginCallback = (fastify: FastifyInstance, 
     done();
   });
 
-  // // Standard server shutdown for non-Lambda environments
-  // if (!process.env.AWS_LAMBDA_FUNCTION_NAME) {
-  //   fastify.addHook("onClose", async (instance) => {
-  //     if (process.env.SENTRY_DSN) {
-  //       try {
-  //         await Sentry.close(2000);
-  //         fastify.log.info("Sentry connection closed");
-  //       } catch (err) {
-  //         fastify.log.error("Error closing Sentry:", err);
-  //       }
-  //     }
-  //   });
-  // }
 
   done();
 };

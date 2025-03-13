@@ -34,13 +34,19 @@ Parameters:
   
   CertificateArn:  # SSL certificate ARN for securing the custom domain
     Type: String
-    Default: arn:aws:acm:us-west-2:034362047054:certificate/e5f34f19-bed2-457b-8ef5-fa6cb14c98d7
+    Default: ''
     Description: ACM Certificate
-    
+
   SentryDsn:  # SSL certificate ARN for securing the custom domain
     Type: String
     Default: ''
     Description: Sentry DSN
+    
+  SentryLambdaLayerArn:  # SSL certificate ARN for securing the custom domain
+    Type: String
+    Default: ''
+    Description: Sentry DSN
+
 
 Globals:
   Function:
@@ -68,6 +74,8 @@ Resources:
       MemorySize: 1024  # Increased memory from default to 1024MB
       # ProvisionedConcurrencyConfig: keep 2 instances of your Lambda function ready to execute at all times, even when there are no requests. This does incur costs regardless of whether your function is processing requests.
       #   ProvisionedConcurrentExecutions: 2  # Pre-warmed instances Cost per day: ~$0.72 (plus execution costs when invoked)
+      Layers:
+        - !Ref SentryLambdaLayerArn
       Events:
         ApiEvent:
           Type: Api
