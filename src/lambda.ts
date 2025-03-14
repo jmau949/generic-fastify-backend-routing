@@ -22,8 +22,6 @@ import logger, { loggerOptions } from "./utils/logger";
 // Create the Fastify app
 const app: FastifyInstance = fastify({
   logger: loggerOptions,
-  keepAliveTimeout: 60000,
-  connectionTimeout: 60000,
   // Generate request ID for each request
   genReqId: (request) => {
     // Extract request ID from Lambda event headers or generate new one
